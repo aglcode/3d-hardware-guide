@@ -58,7 +58,7 @@ function Wiring({ lesson }: { lesson: Lesson }) {
       </thead>
       <tbody>
         {lesson.wiring.map((row) => (
-          <tr key={`${row.from}-${row.to}`} className="border-t border-rule align-top outline-accent hover:bg-raised" {...highlightProps(row.at)}>
+          <tr key={`${row.from}-${row.to}`} className={`border-t border-rule align-top outline-accent hover:bg-raised ${row.at ? 'cursor-pointer' : ''}`} {...highlightProps(row.at)}>
             <td className="py-2 pr-3 font-medium">{row.from}</td>
             <td className="py-2">
               {row.to}
@@ -89,7 +89,7 @@ function PiPinout({ lesson }: { lesson: Lesson }) {
               const ref = `pi.p${physical}`
               const isUsed = used.has(ref)
               return (
-                <td {...highlightProps(ref)} className={`w-1/2 py-[3px] hover:bg-raised ${side === 'left' ? 'pr-2 text-right' : 'pl-2'} ${isUsed ? 'font-semibold text-ink' : 'text-muted'}`}>
+                <td {...highlightProps(ref)} className={`w-1/2 cursor-pointer py-[3px] hover:bg-raised ${side === 'left' ? 'pr-2 text-right' : 'pl-2'} ${isUsed ? 'font-semibold text-ink' : 'text-muted'}`}>
                   <span className={`inline-flex items-center gap-1.5 ${side === 'left' ? 'flex-row-reverse' : ''}`}>
                     <span className={`pin-${pinTone(name)} inline-block size-2 rounded-full`} aria-hidden="true" />
                     <span className="w-5 text-center font-mono">{physical}</span>
@@ -123,7 +123,7 @@ function UnoPinout() {
           <h3 className="mb-1 font-semibold">{group.title}</h3>
           <dl>
             {group.pins.map(([label, text]) => (
-              <div key={label} className="grid grid-cols-[92px_1fr] gap-2 border-t border-rule py-1.5 hover:bg-raised" {...highlightProps(unoRef(label))}>
+              <div key={label} className="grid cursor-pointer grid-cols-[92px_1fr] gap-2 border-t border-rule py-1.5 hover:bg-raised" {...highlightProps(unoRef(label))}>
                 <dt className="font-medium">{label}</dt>
                 <dd className="text-muted">{text}</dd>
               </div>

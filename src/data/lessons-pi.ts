@@ -21,7 +21,7 @@ free -h                    # how much memory is in use`
 const tour: Lesson = {
   ...base,
   id: 'meet-the-pi',
-  use: 'Start here',
+  use: 'First look',
   title: 'Meet the Raspberry Pi',
   summary: 'A whole Linux computer on a card, with pins that reach the real world.',
   overview:

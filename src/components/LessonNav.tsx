@@ -1,9 +1,17 @@
-import { lessonGroups } from '../data/lessons.ts'
+import { START_PAGE, lessonGroups } from '../data/lessons.ts'
 import type { BoardKind } from '../data/types.ts'
 
 export function LessonNav({ board, currentId, done, onPick }: { board: BoardKind; currentId: string; done: string[]; onPick: (id: string) => void }) {
   return (
     <nav aria-label="Lessons" className="flex flex-col gap-5 px-2 pb-6 pt-1">
+      <a
+        href={`#${START_PAGE}`}
+        aria-current={currentId === START_PAGE ? 'page' : undefined}
+        onClick={() => onPick(START_PAGE)}
+        className={`flex min-h-8 items-center rounded-control px-2.5 py-1.5 transition-colors ${currentId === START_PAGE ? 'bg-active font-medium text-ink' : 'text-ink hover:bg-active/60'}`}
+      >
+        Getting started
+      </a>
       {lessonGroups(board).map((group) => (
         <div key={group.use}>
           <h2 className="mb-1 px-2.5 text-small text-muted">{group.use}</h2>

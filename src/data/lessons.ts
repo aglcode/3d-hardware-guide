@@ -7,6 +7,9 @@ export const LESSONS: Record<BoardKind, Lesson[]> = {
   pi: PI_LESSONS,
 }
 
+/** The route of the Getting started page, which is also where the site opens. */
+export const START_PAGE = 'getting-started'
+
 export const ALL_LESSONS: Lesson[] = [...UNO_LESSONS, ...PI_LESSONS]
 
 export function findLesson(id: string | null | undefined): Lesson | undefined {
