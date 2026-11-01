@@ -95,6 +95,16 @@ export function setLabels(labels: boolean) {
   publish({ labels })
 }
 
+export type ViewCommand = 'reset' | 'left' | 'right' | 'in' | 'out'
+
+/** Requests from controls outside the canvas, which the camera picks up on its next frame. */
+export const viewQueue: ViewCommand[] = []
+
+export function requestView(command: ViewCommand) {
+  viewQueue.push(command)
+  publish({})
+}
+
 /** Advances the running program. The 3D stage calls this once per frame. */
 export function stepRun(dt: number) {
   if (!lesson || ui.run === 'stopped') return

@@ -2,8 +2,9 @@ import { Suspense, useEffect, useRef, useState, type RefObject } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Environment, Lightformer, OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
+import { findShortcut, type ShortcutAction } from '../data/shortcuts.ts'
 import type { Bench, Callout, Lesson } from '../data/types.ts'
-import { stepRun, subscribeBench, useBench, setLabels } from '../lib/bench-store.ts'
+import { requestView, setLabels, stepRun, subscribeBench, useBench, viewQueue } from '../lib/bench-store.ts'
 import { benchBounds, resolvePoint } from '../lib/geometry.ts'
 import { Breadboard, CableView, Jumper } from './BenchParts.tsx'
 import { PiBoard, UnoBoard } from './Boards.tsx'
@@ -11,10 +12,6 @@ import { ModuleView } from './Modules.tsx'
 import { BbPartView } from './Parts.tsx'
 
 type OrbitHandle = { target: THREE.Vector3; update: () => void }
-type ViewCommand = 'reset' | 'left' | 'right' | 'in' | 'out'
-
-/** View buttons sit outside the canvas, so they leave their requests here for the next frame. */
-const viewQueue: ViewCommand[] = []
 
 const FOV = 20
 const FRAME_PADDING = 0.98
@@ -201,20 +198,31 @@ const SLOT_CLASS: Record<Callout['slot'], string> = {
   br: 'right-3 bottom-3',
 }
 
-function IconButton({ label, onClick, pressed, children }: { label: string; onClick: () => void; pressed?: boolean; children: React.ReactNode }) {
+function IconButton({ action, label, tip, onClick, pressed, children }: { action: ShortcutAction; label: string; tip?: string; onClick: () => void; pressed?: boolean; children: React.ReactNode }) {
+  const shortcut = findShortcut(action)
   return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      aria-pressed={pressed}
-      onClick={onClick}
-      className="grid size-8 place-items-center rounded-control border border-control bg-surface text-muted transition-colors hover:text-ink active:bg-active aria-pressed:bg-active aria-pressed:text-ink"
-    >
-      <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        {children}
-      </svg>
-    </button>
+    <span className="group relative">
+      <button
+        type="button"
+        aria-label={label}
+        aria-keyshortcuts={shortcut.match[0].toUpperCase()}
+        aria-pressed={pressed}
+        onClick={onClick}
+        className="grid size-8 place-items-center rounded-control border border-control bg-surface text-muted transition-colors hover:text-ink active:bg-active aria-pressed:bg-active aria-pressed:text-ink"
+      >
+        <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          {children}
+        </svg>
+      </button>
+      <span
+        aria-hidden="true"
+        data-tooltip={action}
+        className="pointer-events-none absolute bottom-full left-0 z-10 mb-1.5 flex items-center gap-2 rounded-control bg-ink px-2 py-1 text-small whitespace-nowrap text-surface opacity-0 shadow-md transition-opacity delay-100 group-hover:opacity-100 group-has-focus-visible:opacity-100"
+      >
+        {tip ?? shortcut.label}
+        <kbd className="grid h-4 min-w-4 place-items-center rounded-[3px] bg-surface px-1 font-sans text-[11px] font-medium text-ink">{shortcut.keys[0]}</kbd>
+      </span>
+    </span>
   )
 }
 
@@ -225,7 +233,6 @@ export default function Stage({ lesson, children }: { lesson: Lesson; children?:
   const cards = useRef<HTMLDivElement>(null)
   const wrap = useRef<HTMLDivElement>(null)
   const [compact, setCompact] = useState(false)
-  const [invalidator, setInvalidator] = useState<null | (() => void)>(null)
 
   useEffect(() => {
     const element = wrap.current
@@ -234,11 +241,6 @@ export default function Stage({ lesson, children }: { lesson: Lesson; children?:
     observer.observe(element)
     return () => observer.disconnect()
   }, [])
-
-  const send = (command: ViewCommand) => {
-    viewQueue.push(command)
-    invalidator?.()
-  }
 
   const showCards = labels && !compact
 
@@ -251,10 +253,9 @@ export default function Stage({ lesson, children }: { lesson: Lesson; children?:
           frameloop={run === 'stopped' ? 'demand' : 'always'}
           camera={{ fov: FOV, position: [0, 30, 30], near: 1, far: 400 }}
           aria-label={`3D view of ${lesson.title}. Drag to orbit, scroll to zoom.`}
-          onCreated={({ gl, invalidate }) => {
+          onCreated={({ gl }) => {
             gl.toneMapping = THREE.NeutralToneMapping
             gl.toneMappingExposure = 1.05
-            setInvalidator(() => () => invalidate())
           }}
         >
           <hemisphereLight args={['#ffffff', '#b9bfc4', 0.72]} />
@@ -330,25 +331,25 @@ export default function Stage({ lesson, children }: { lesson: Lesson; children?:
       </div>
 
       <div className="flex shrink-0 flex-wrap items-center gap-1 rounded-b-card border-t border-line bg-surface px-2 py-2" role="toolbar" aria-label="3D view">
-        <IconButton label="Turn left" onClick={() => send('left')}>
+        <IconButton action="left" label="Turn left" onClick={() => requestView('left')}>
           <path d="M3 7a5.5 5.5 0 1 1 1 4" />
           <path d="M2.5 3v4h4" />
         </IconButton>
-        <IconButton label="Turn right" onClick={() => send('right')}>
+        <IconButton action="right" label="Turn right" onClick={() => requestView('right')}>
           <path d="M13 7a5.5 5.5 0 1 0-1 4" />
           <path d="M13.5 3v4h-4" />
         </IconButton>
-        <IconButton label="Zoom out" onClick={() => send('out')}>
+        <IconButton action="out" label="Zoom out" onClick={() => requestView('out')}>
           <path d="M3.5 8h9" />
         </IconButton>
-        <IconButton label="Zoom in" onClick={() => send('in')}>
+        <IconButton action="in" label="Zoom in" onClick={() => requestView('in')}>
           <path d="M3.5 8h9M8 3.5v9" />
         </IconButton>
-        <IconButton label="Reset view" onClick={() => send('reset')}>
+        <IconButton action="reset" label="Reset view" onClick={() => requestView('reset')}>
           <path d="M8 2.5v3M8 10.5v3M2.5 8h3M10.5 8h3" />
           <circle cx="8" cy="8" r="2" />
         </IconButton>
-        <IconButton label="Show part labels" pressed={labels} onClick={() => setLabels(!labels)}>
+        <IconButton action="labels" label="Show part labels" tip={labels ? 'Hide part labels' : 'Show part labels'} pressed={labels} onClick={() => setLabels(!labels)}>
           <path d="M2.5 3.5h7l4 4.5-4 4.5h-7z" />
         </IconButton>
         {children}

@@ -1,12 +1,14 @@
-import { Suspense, lazy, useEffect, useState } from 'react'
+import { Suspense, lazy, useEffect, useEffectEvent, useState } from 'react'
 import { CodePanel } from './components/CodePanel.tsx'
 import { InfoPanel } from './components/InfoPanel.tsx'
 import { InputControls } from './components/InputControls.tsx'
 import { LessonNav } from './components/LessonNav.tsx'
+import { ShortcutsDialog } from './components/ShortcutsDialog.tsx'
 import { BOARDS } from './data/boards.ts'
 import { LESSONS, findLesson } from './data/lessons.ts'
+import { shortcutFor } from './data/shortcuts.ts'
 import type { BoardKind } from './data/types.ts'
-import { loadLesson, startRun, stopRun, useBench } from './lib/bench-store.ts'
+import { loadLesson, requestView, setLabels, startRun, stopRun, useBench } from './lib/bench-store.ts'
 import { applyTheme, hasWebGl, initialTheme, loadProgress, saveProgress, saveTheme, type Theme } from './lib/preferences.ts'
 
 // A failed download (a dropped connection, a stale deploy) stays inside the stage instead of blanking the page.
@@ -26,6 +28,18 @@ const Stage = lazy(() =>
 )
 
 const BOARD_ORDER: BoardKind[] = ['uno', 'pi']
+
+/** Typing in a field must never trigger a shortcut. */
+function isTypingTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false
+  if (target.isContentEditable || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') return true
+  return target instanceof HTMLInputElement && target.type !== 'range'
+}
+
+/** Space already activates a focused control, so it must not start the program as well. */
+function isActivatedBySpace(target: EventTarget | null) {
+  return target instanceof HTMLElement && target.closest('button, a, input, summary, [role="tab"]') !== null
+}
 
 function lessonFromHash() {
   return findLesson(window.location.hash.slice(1)) ?? LESSONS.uno[0]
@@ -51,7 +65,8 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [theme, setTheme] = useState<Theme>(initialTheme)
   const [webGl] = useState(hasWebGl)
-  const { run } = useBench()
+  const [shortcutsOpen, setShortcutsOpen] = useState(false)
+  const { run, labels } = useBench()
 
   useEffect(() => {
     applyTheme(theme)
@@ -104,6 +119,48 @@ export default function App() {
 
   const boardLessons = LESSONS[lesson.board]
   const nextLesson = boardLessons[boardLessons.indexOf(lesson) + 1]
+  const previousLesson = boardLessons[boardLessons.indexOf(lesson) - 1]
+
+  const onShortcut = useEffectEvent((event: KeyboardEvent) => {
+    if (event.ctrlKey || event.metaKey || event.altKey || event.repeat) return
+    if (shortcutsOpen || menuOpen || isTypingTarget(event.target)) return
+    const action = shortcutFor(event.key)
+    if (!action) return
+    if (action === 'run' && isActivatedBySpace(event.target)) return
+    event.preventDefault()
+    switch (action) {
+      case 'help':
+        setShortcutsOpen(true)
+        break
+      case 'run':
+        toggleRun()
+        break
+      case 'next':
+        if (nextLesson) window.location.hash = nextLesson.id
+        break
+      case 'previous':
+        if (previousLesson) window.location.hash = previousLesson.id
+        break
+      case 'board':
+        window.location.hash = LESSONS[lesson.board === 'uno' ? 'pi' : 'uno'][0].id
+        break
+      case 'labels':
+        setLabels(!labels)
+        break
+      case 'theme':
+        toggleTheme()
+        break
+      default:
+        requestView(action)
+    }
+  })
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => onShortcut(event)
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   const doneHere = boardLessons.filter((l) => done.includes(l.id)).length
   const runLabel = lesson.code[0].lang === 'cpp' ? 'sketch' : lesson.code[0].lang === 'python' ? 'program' : 'commands'
 
@@ -141,6 +198,19 @@ export default function App() {
         <p className="ml-auto hidden text-muted tabular-nums md:block">
           {doneHere} of {boardLessons.length} lessons run
         </p>
+        <button
+          type="button"
+          onClick={() => setShortcutsOpen(true)}
+          aria-label="Keyboard shortcuts"
+          aria-haspopup="dialog"
+          title="Keyboard shortcuts (?)"
+          className="hidden size-9 place-items-center rounded-control text-muted hover:bg-active hover:text-ink md:grid"
+        >
+          <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="1.5" y="3.5" width="13" height="9" rx="1.5" />
+            <path d="M4.5 6.5h.01M7 6.5h.01M9.500 6.500h.01M12 6.5h-.5M5 9.500h6" />
+          </svg>
+        </button>
         <button
           type="button"
           onClick={toggleTheme}
@@ -215,6 +285,7 @@ export default function App() {
           </div>
         </main>
       </div>
+      {shortcutsOpen && <ShortcutsDialog onClose={() => setShortcutsOpen(false)} />}
     </div>
   )
 }
