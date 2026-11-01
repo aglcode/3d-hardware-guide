@@ -28,7 +28,7 @@ void loop() {
 const tour: Lesson = {
   ...base,
   id: 'meet-the-uno',
-  use: 'Start here',
+  use: 'First look',
   title: 'Meet the Uno',
   summary: 'One chip, one program, and pins that switch real things on and off.',
   overview:

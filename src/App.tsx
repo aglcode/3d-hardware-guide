@@ -1,11 +1,12 @@
 import { Suspense, lazy, useEffect, useEffectEvent, useState } from 'react'
 import { CodePanel } from './components/CodePanel.tsx'
+import { GettingStarted } from './components/GettingStarted.tsx'
 import { InfoPanel } from './components/InfoPanel.tsx'
 import { InputControls } from './components/InputControls.tsx'
 import { LessonNav } from './components/LessonNav.tsx'
 import { ShortcutsDialog } from './components/ShortcutsDialog.tsx'
 import { BOARDS } from './data/boards.ts'
-import { LESSONS, findLesson } from './data/lessons.ts'
+import { LESSONS, START_PAGE, findLesson } from './data/lessons.ts'
 import { shortcutFor } from './data/shortcuts.ts'
 import type { BoardKind } from './data/types.ts'
 import { loadLesson, requestView, setLabels, startRun, stopRun, useBench } from './lib/bench-store.ts'
@@ -42,7 +43,7 @@ function isActivatedBySpace(target: EventTarget | null) {
 }
 
 function lessonFromHash() {
-  return findLesson(window.location.hash.slice(1)) ?? LESSONS.uno[0]
+  return findLesson(window.location.hash.slice(1))
 }
 
 function Mark() {
@@ -60,7 +61,9 @@ function StagePlaceholder({ children }: { children: string }) {
 }
 
 export default function App() {
-  const [lesson, setLesson] = useState(lessonFromHash)
+  // Without a lesson in the address, the site opens on Getting started. `lesson` then keeps the last one used.
+  const [lesson, setLesson] = useState(() => lessonFromHash() ?? LESSONS.uno[0])
+  const [onStartPage, setOnStartPage] = useState(() => !lessonFromHash())
   const [done, setDone] = useState(loadProgress)
   const [menuOpen, setMenuOpen] = useState(false)
   const [theme, setTheme] = useState<Theme>(initialTheme)
@@ -73,15 +76,19 @@ export default function App() {
   }, [theme])
 
   useEffect(() => {
-    const onHash = () => setLesson(lessonFromHash())
+    const onHash = () => {
+      const next = lessonFromHash()
+      setOnStartPage(!next)
+      if (next) setLesson(next)
+    }
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
 
   useEffect(() => {
     loadLesson(lesson)
-    document.title = `${lesson.title}: Benchtop`
-  }, [lesson])
+    document.title = onStartPage ? 'Getting started: Circuit Lab' : `${lesson.title}: Circuit Lab`
+  }, [lesson, onStartPage])
 
   useEffect(() => {
     if (!menuOpen) return
@@ -94,6 +101,7 @@ export default function App() {
 
   const pick = (id: string) => {
     const next = findLesson(id)
+    setOnStartPage(!next)
     if (next) setLesson(next)
     setMenuOpen(false)
   }
@@ -126,6 +134,8 @@ export default function App() {
     if (shortcutsOpen || menuOpen || isTypingTarget(event.target)) return
     const action = shortcutFor(event.key)
     if (!action) return
+    // There is no bench or program on Getting started, so those keys do nothing there.
+    if (onStartPage && ['run', 'left', 'right', 'in', 'out', 'reset', 'labels'].includes(action)) return
     if (action === 'run' && isActivatedBySpace(event.target)) return
     event.preventDefault()
     switch (action) {
@@ -136,10 +146,12 @@ export default function App() {
         toggleRun()
         break
       case 'next':
-        if (nextLesson) window.location.hash = nextLesson.id
+        if (onStartPage) window.location.hash = boardLessons[0].id
+        else if (nextLesson) window.location.hash = nextLesson.id
         break
       case 'previous':
-        if (previousLesson) window.location.hash = previousLesson.id
+        if (onStartPage) break
+        window.location.hash = previousLesson ? previousLesson.id : START_PAGE
         break
       case 'board':
         window.location.hash = LESSONS[lesson.board === 'uno' ? 'pi' : 'uno'][0].id
@@ -178,18 +190,18 @@ export default function App() {
             <path d="M2.5 4h11M2.5 8h11M2.5 12h11" />
           </svg>
         </button>
-        <a href={`#${LESSONS.uno[0].id}`} onClick={() => pick(LESSONS.uno[0].id)} className="flex items-center gap-2 lg:w-[208px]">
+        <a href={`#${START_PAGE}`} onClick={() => pick(START_PAGE)} className="flex items-center gap-2 lg:w-[208px]">
           <Mark />
-          <span className="hidden text-section font-semibold sm:inline">Benchtop</span>
+          <span className="hidden text-section font-semibold sm:inline">Circuit Lab</span>
         </a>
         <nav aria-label="Boards" className="flex h-full items-stretch gap-4">
           {BOARD_ORDER.map((board) => (
             <a
               key={board}
               href={`#${LESSONS[board][0].id}`}
-              aria-current={lesson.board === board ? 'true' : undefined}
+              aria-current={!onStartPage && lesson.board === board ? 'true' : undefined}
               onClick={() => pick(LESSONS[board][0].id)}
-              className={`flex items-center border-b-2 pt-0.5 whitespace-nowrap transition-colors ${lesson.board === board ? 'border-accent font-semibold text-ink' : 'border-transparent text-muted hover:text-ink'}`}
+              className={`flex items-center border-b-2 pt-0.5 whitespace-nowrap transition-colors ${!onStartPage && lesson.board === board ? 'border-accent font-semibold text-ink' : 'border-transparent text-muted hover:text-ink'}`}
             >
               {BOARDS[board].short}
             </a>
@@ -227,62 +239,68 @@ export default function App() {
 
       <div className="flex min-h-0 flex-1">
         <aside className="hidden w-[228px] shrink-0 overflow-y-auto lg:block">
-          <LessonNav board={lesson.board} currentId={lesson.id} done={done} onPick={pick} />
+          <LessonNav board={lesson.board} currentId={onStartPage ? START_PAGE : lesson.id} done={done} onPick={pick} />
         </aside>
 
         {menuOpen && (
           <div className="fixed inset-x-0 bottom-0 top-12 z-20 overflow-y-auto bg-ground lg:hidden">
-            <LessonNav board={lesson.board} currentId={lesson.id} done={done} onPick={pick} />
+            <LessonNav board={lesson.board} currentId={onStartPage ? START_PAGE : lesson.id} done={done} onPick={pick} />
           </div>
         )}
 
         <main className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-surface p-4 sm:p-6 lg:mb-2 lg:mr-2 lg:rounded-sheet lg:border lg:border-line">
-          <div className="mb-4 flex shrink-0 flex-wrap items-start justify-between gap-x-6 gap-y-3">
-            <div className="min-w-0 flex-1 basis-80">
-              <h1 className="text-title font-semibold tracking-[-0.01em]">{lesson.title}</h1>
-              <p className="text-muted">{lesson.summary}</p>
-            </div>
-            <div className="flex shrink-0 items-center gap-2">
-              {nextLesson && (
-                <a
-                  href={`#${nextLesson.id}`}
-                  onClick={() => pick(nextLesson.id)}
-                  className="flex h-9 items-center rounded-control border border-control px-3 transition-colors hover:bg-raised active:bg-active"
+          {onStartPage ? (
+            <GettingStarted done={done} onPick={pick} />
+          ) : (
+            <>
+            <div className="mb-4 flex shrink-0 flex-wrap items-start justify-between gap-x-6 gap-y-3">
+              <div className="min-w-0 flex-1 basis-80">
+                <h1 className="text-title font-semibold tracking-[-0.01em]">{lesson.title}</h1>
+                <p className="text-muted">{lesson.summary}</p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                {nextLesson && (
+                  <a
+                    href={`#${nextLesson.id}`}
+                    onClick={() => pick(nextLesson.id)}
+                    className="flex h-9 items-center rounded-control border border-control px-3 transition-colors hover:bg-raised active:bg-active"
+                  >
+                    Next: {nextLesson.title}
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={toggleRun}
+                  className="h-9 rounded-control bg-ink px-4 font-medium whitespace-nowrap text-surface transition-opacity hover:opacity-85 active:opacity-70"
                 >
-                  Next: {nextLesson.title}
-                </a>
-              )}
-              <button
-                type="button"
-                onClick={toggleRun}
-                className="h-9 rounded-control bg-ink px-4 font-medium whitespace-nowrap text-surface transition-opacity hover:opacity-85 active:opacity-70"
-              >
-                {run === 'stopped' ? `Run ${runLabel}` : 'Stop'}
-              </button>
-            </div>
-          </div>
-
-          <div className="grid flex-1 grid-cols-1 gap-4 xl:min-h-0 xl:grid-cols-[minmax(0,1fr)_384px]">
-            <div className="h-[46dvh] min-h-[340px] overflow-hidden sm:h-[62dvh] rounded-card border border-line xl:h-auto xl:min-h-0">
-              {webGl ? (
-                <Suspense fallback={<StagePlaceholder>Setting out the parts</StagePlaceholder>}>
-                  <Stage lesson={lesson}>
-                    <InputControls lesson={lesson} />
-                  </Stage>
-                </Suspense>
-              ) : (
-                <StagePlaceholder>This browser has WebGL turned off, so the 3D bench cannot be drawn. The wiring table and code still work.</StagePlaceholder>
-              )}
-            </div>
-            <div className="flex flex-col gap-4 xl:min-h-0">
-              <div className="flex h-[380px] flex-col xl:h-auto xl:min-h-0 xl:flex-1">
-                <InfoPanel lesson={lesson} />
-              </div>
-              <div className="flex h-[440px] flex-col xl:h-auto xl:min-h-0 xl:flex-[1.15]">
-                <CodePanel key={lesson.id} lesson={lesson} />
+                  {run === 'stopped' ? `Run ${runLabel}` : 'Stop'}
+                </button>
               </div>
             </div>
-          </div>
+  
+            <div className="grid flex-1 grid-cols-1 gap-4 xl:min-h-0 xl:grid-cols-[minmax(0,1fr)_384px]">
+              <div className="h-[46dvh] min-h-[340px] overflow-hidden sm:h-[62dvh] rounded-card border border-line xl:h-auto xl:min-h-0">
+                {webGl ? (
+                  <Suspense fallback={<StagePlaceholder>Setting out the parts</StagePlaceholder>}>
+                    <Stage lesson={lesson}>
+                      <InputControls lesson={lesson} />
+                    </Stage>
+                  </Suspense>
+                ) : (
+                  <StagePlaceholder>This browser has WebGL turned off, so the 3D bench cannot be drawn. The wiring table and code still work.</StagePlaceholder>
+                )}
+              </div>
+              <div className="flex flex-col gap-4 xl:min-h-0">
+                <div className="flex h-[380px] flex-col xl:h-auto xl:min-h-0 xl:flex-1">
+                  <InfoPanel lesson={lesson} />
+                </div>
+                <div className="flex h-[440px] flex-col xl:h-auto xl:min-h-0 xl:flex-[1.15]">
+                  <CodePanel key={lesson.id} lesson={lesson} />
+                </div>
+              </div>
+            </div>
+            </>
+          )}
         </main>
       </div>
       {shortcutsOpen && <ShortcutsDialog onClose={() => setShortcutsOpen(false)} />}

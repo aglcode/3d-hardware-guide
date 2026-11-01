@@ -4,7 +4,7 @@ Guidance for AI coding agents (Claude Code, Codex, Cursor, etc.) working in this
 
 ## Project status
 
-`3d-hardware-guides` is **Benchtop**: interactive 3D lessons for the Arduino Uno Rev3 SMD and Raspberry Pi 5,
+`3d-hardware-guides` is **Circuit Lab**: interactive 3D lessons for the Arduino Uno Rev3 SMD and Raspberry Pi 5,
 built with `three`, `@react-three/fiber` and `@react-three/drei`. See `README.md` for the lesson format.
 Lessons are data in `src/data/`, and all models are procedural geometry in `src/scene/`, so there are
 no asset files. Board geometry is sourced in `docs/board-references.md`; keep that table current when
@@ -41,6 +41,7 @@ npm run build      # tsc -b (type-check) && vite build → dist/
 npm run lint       # eslint .
 npm run preview    # serve the production build locally
 npm run check:circuits  # verify every lesson's wiring and run its simulation
+npm run video:render    # re-render the intro video (see README.md)
 ```
 
 There is no test runner yet. Before calling a change done, **`npm run build`, `npm run lint` and
@@ -121,6 +122,9 @@ at review time and reports findings as `file:line`. Use it when asked to review 
 
 ## Gotchas
 
+- **The intro video shows the real interface.** After a visible UI change, or a change to the lesson counts or
+  groups, re-make it with the steps in `README.md`. Remotion is a dev dependency only: `src/video/` must never
+  be imported from the app.
 - **Tailwind v4 is configured in CSS** (`@theme`, `@custom-variant`, etc.) — there is no
   `tailwind.config.js`; don't create one unless a plugin specifically requires it.
 - **Node 22 for the skill scripts.** The default Node here is 20; run them with

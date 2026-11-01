@@ -1,3 +1,4 @@
+// These keep the site's earlier name so that returning visitors keep their progress and theme.
 const PROGRESS_KEY = 'benchtop.lessons-run'
 const THEME_KEY = 'benchtop.theme'
 
