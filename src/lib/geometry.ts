@@ -71,6 +71,10 @@ export const MODULE_PINS: Record<ModuleKind, Record<string, Vec3>> = {
   router: { lan: [0, 1, -1.6], body: [0, 1.6, 0] },
   phone: { screen: [0, 3.3, 0.35] },
   car: { nose: [0, 1.1, -2.5] },
+  tds: { GND: [-0.25, 0.51, 1.6], VCC: [0, 0.51, 1.6], A: [0.25, 0.51, 1.6], probe: [0, 0.5, -1.6], body: [0, 0.6, 0] },
+  ph: { GND: [-0.25, 0.51, 1.6], VCC: [0, 0.51, 1.6], A: [0.25, 0.51, 1.6], bnc: [0, 0.8, -2], body: [0, 0.8, 0] },
+  ds18b20: { VCC: [-0.25, 0.3, 0.7], GND: [0, 0.3, 0.7], DATA: [0.25, 0.3, 0.7], cable: [0, 0.3, -0.55], body: [0, 0.5, 0] },
+  glass: { tds: [-0.6, 5, 0], temp: [0.6, 5, 0.2], ph: [0, 5.2, 0], body: [0, 5, 0] },
 }
 
 export function modulePoint(mod: ModulePart, local: Vec3): Vec3 {
@@ -189,6 +193,10 @@ const MODULE_EXTENT: Record<ModuleKind, [number, number, number]> = {
   router: [3, 3.6, 2],
   phone: [1.8, 6.4, 1],
   car: [1.6, 2, 4.2],
+  tds: [2.2, 1, 1.8],
+  ph: [2.2, 1.2, 2.2],
+  ds18b20: [0.5, 0.5, 0.8],
+  glass: [2, 5.5, 2],
 }
 
 /** The space everything on a bench occupies, used to frame the camera. */

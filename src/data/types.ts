@@ -42,6 +42,10 @@ export type ModuleKind =
   | 'router'
   | 'phone'
   | 'car'
+  | 'tds'
+  | 'ph'
+  | 'ds18b20'
+  | 'glass'
 
 /** A part that stands on the bench on its own and is reached by wires or cables. */
 export type ModulePart = {
@@ -53,6 +57,8 @@ export type ModulePart = {
   text?: string
   /** Whether clicking it in 3D toggles its input. */
   tappable?: boolean
+  /** For a glass of water: the probes standing in it. */
+  holds?: ('tds' | 'temp' | 'ph')[]
 }
 
 export const WIRE_COLORS = {
@@ -132,6 +138,7 @@ export type SimInput =
       unit?: string
     }
   | { id: string; kind: 'hold' | 'toggle'; label: string; on?: string; off?: string }
+  | { id: string; kind: 'choice'; label: string; options: { label: string; value: number }[]; initial: number }
 
 export type SimOutputs = Record<string, number | string>
 

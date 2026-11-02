@@ -34,6 +34,26 @@ export function InputControls({ lesson }: { lesson: Lesson }) {
             </div>
           )
         }
+        if (input.kind === 'choice') {
+          return (
+            <div key={input.id} role="group" aria-label={input.label} className="flex items-center gap-2">
+              <span className="text-muted">{input.label}</span>
+              <span className="flex">
+                {input.options.map((option, i) => (
+                  <button
+                    key={option.label}
+                    type="button"
+                    aria-pressed={value === option.value}
+                    onClick={() => setInput(input.id, option.value)}
+                    className={`h-8 border border-control bg-surface px-2.5 text-body transition-colors hover:bg-raised aria-pressed:bg-active aria-pressed:font-medium ${i === 0 ? 'rounded-l-control' : '-ml-px'} ${i === input.options.length - 1 ? 'rounded-r-control' : ''}`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </span>
+            </div>
+          )
+        }
         if (input.kind === 'hold') {
           return (
             <button
