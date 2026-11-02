@@ -13,6 +13,9 @@ Where the 3D models' numbers come from, and how far to trust each one.
 | Uno datasheet | [Arduino Uno R3 datasheet](https://docs.arduino.cc/resources/datasheets/A000066-datasheet.pdf), for the parts list only |
 | ATmega328P datasheet | [Microchip ATmega328P datasheet](https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-7810-Automotive-Microcontrollers-ATmega328P_Datasheet.pdf), for the 0.6 x VCC input-high threshold used in "Wire them directly" |
 | Pi UART docs | `computers/configuration/interfaces` in the same Raspberry Pi repository, and the `uart0-pi5` entry in the [overlays README](https://github.com/raspberrypi/linux/blob/rpi-6.12.y/arch/arm/boot/dts/overlays/README), for the Pi 5 UART setup, the 3.3 V warning and `/dev/ttyAMA0` |
+| TDS sensor | [DFRobot SEN0244 wiki](https://wiki.dfrobot.com/Gravity__Analog_TDS_Sensor___Meter_For_Arduino_SKU__SEN0244) and its GravityTDS library: supply, output range, accuracy and the voltage to ppm formula |
+| pH sensor | [DFRobot SEN0161-V2 wiki](https://wiki.dfrobot.com/Gravity__Analog_pH_Sensor_Meter_Kit_V2_SKU_SEN0161-V2) and its DFRobot_PH library: output range, accuracy, buffer voltages and calibration windows |
+| DS18B20 probe | [DFRobot DFR0198 wiki](https://wiki.dfrobot.com/Waterproof_DS18B20_Digital_Temperature_Sensor__SKU_DFR0198_) for wire colours, supply and accuracy, and the [PJRC OneWire page](https://www.pjrc.com/teensy/td_libs_OneWire.html) for the 4.7 kΩ pull-up. The Analog Devices datasheet could not be downloaded |
 | Photos | The two product photos supplied for this project, used for colour and part appearance only |
 
 The Pi 5 drawing itself says its dimensions are approximate and for reference only, and that not all

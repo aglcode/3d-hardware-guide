@@ -50,7 +50,7 @@ let ctx: SimContext | null = null
 function initialInputs(target: Lesson): Record<string, number> {
   const inputs: Record<string, number> = {}
   for (const input of target.inputs ?? []) {
-    inputs[input.id] = input.kind === 'slider' ? input.initial : 0
+    inputs[input.id] = input.kind === 'slider' || input.kind === 'choice' ? input.initial : 0
   }
   return inputs
 }

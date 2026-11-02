@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, type ReactNode } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { ModulePart, Vec3 } from '../data/types.ts'
@@ -194,6 +194,93 @@ function Car({ id }: { id: string }) {
   )
 }
 
+/** A sensor board on short standoffs, with its three Gravity pins at the front edge. */
+function SensorBoard({ color, children }: { color: string; children?: ReactNode }) {
+  return (
+    <group>
+      {[-1, 1].flatMap((sx) => [-1, 1].map((sz) => <Cyl key={`${sx}${sz}`} at={[sx * 1.8, 0.13, sz * 1.3]} radius={0.1} height={0.25} color="#3a3d42" />))}
+      <Box at={[0, 0.3, 0]} size={[4.2, 0.1, 3.2]} color={color} />
+      <Box at={[0, 0.48, 1.45]} size={[0.9, 0.26, 0.3]} color="#efe9d8" />
+      <BoxField points={[[-0.25, 0.42, 1.6], [0, 0.42, 1.6], [0.25, 0.42, 1.6]]} size={[0.06, 0.18, 0.06]} color="#d6ab45" metal={0.8} />
+      <Box at={[0.6, 0.38, 0]} size={[0.7, 0.08, 0.7]} color="#17181b" />
+      {children}
+    </group>
+  )
+}
+
+function TdsBoard() {
+  return (
+    <SensorBoard color="#1c5fa8">
+      <Box at={[0, 0.5, -1.4]} size={[0.8, 0.3, 0.4]} color="#efe9d8" />
+    </SensorBoard>
+  )
+}
+
+function PhBoard() {
+  return (
+    <SensorBoard color="#1c5fa8">
+      <Box at={[0, 0.65, -1.15]} size={[1.1, 0.7, 0.9]} color="#c9ccd0" metal={0.6} rough={0.35} />
+      <Cyl at={[0, 0.8, -1.75]} rotation={[Math.PI / 2, 0, 0]} radius={0.42} height={0.5} color="#c9ccd0" metal={0.6} rough={0.35} />
+    </SensorBoard>
+  )
+}
+
+/** Where a waterproof probe's cable splits into its three wires. */
+function SplitLead() {
+  return (
+    <group>
+      <Cyl at={[0, 0.3, -0.15]} rotation={[Math.PI / 2, 0, 0]} radius={0.16} height={0.8} color="#1d1f23" />
+      {(['#d7352b', '#23262b', '#e4b21c'] as const).map((color, i) => (
+        <Box key={color} at={[(i - 1) * 0.25, 0.3, 0.45]} size={[0.06, 0.06, 0.5]} color={color} />
+      ))}
+    </group>
+  )
+}
+
+const WATER = '#9cc9dc'
+
+/** A glass of water holding the probes a lesson uses. */
+function Glass({ holds }: { holds: ModulePart['holds'] }) {
+  return (
+    <group>
+      <mesh position={[0, 0.06, 0]} receiveShadow>
+        <cylinderGeometry args={[1.85, 1.85, 0.12, 40]} />
+        <meshStandardMaterial color="#dfe8ea" transparent opacity={0.55} roughness={0.1} />
+      </mesh>
+      <mesh position={[0, 1.8, 0]}>
+        <cylinderGeometry args={[1.75, 1.7, 3.3, 40]} />
+        <meshStandardMaterial color={WATER} transparent opacity={0.5} roughness={0.15} />
+      </mesh>
+      <mesh position={[0, 2.3, 0]}>
+        <cylinderGeometry args={[1.95, 1.85, 4.6, 40, 1, true]} />
+        <meshStandardMaterial color="#e8f0f2" transparent opacity={0.28} roughness={0.05} side={THREE.DoubleSide} />
+      </mesh>
+      {holds?.includes('tds') && (
+        <group position={[-0.6, 0, 0]}>
+          <Cyl at={[0, 3.2, 0]} radius={0.22} height={3.6} color="#1d1f23" rough={0.5} />
+          {[-0.08, 0.08].map((x) => (
+            <Cyl key={x} at={[x, 1.25, 0]} radius={0.035} height={0.4} color="#d6d9dc" metal={0.8} rough={0.3} />
+          ))}
+        </group>
+      )}
+      {holds?.includes('temp') && <Cyl at={[0.6, 2.9, 0.2]} radius={0.12} height={4.2} color="#c9ccd0" metal={0.7} rough={0.3} />}
+      {holds?.includes('ph') && (
+        <group>
+          <Cyl at={[0, 4.4, 0]} radius={0.28} height={1.6} color="#1d1f23" rough={0.5} />
+          <mesh position={[0, 2.3, 0]}>
+            <cylinderGeometry args={[0.24, 0.24, 2.6, 24]} />
+            <meshStandardMaterial color="#e6eef0" transparent opacity={0.6} roughness={0.05} />
+          </mesh>
+          <mesh position={[0, 0.95, 0]}>
+            <sphereGeometry args={[0.24, 24, 16]} />
+            <meshStandardMaterial color="#e6eef0" transparent opacity={0.6} roughness={0.05} />
+          </mesh>
+        </group>
+      )}
+    </group>
+  )
+}
+
 export function ModuleView({ mod }: { mod: ModulePart }) {
   const inner = () => {
     switch (mod.kind) {
@@ -219,6 +306,14 @@ export function ModuleView({ mod }: { mod: ModulePart }) {
         return <Phone id={mod.id} text={mod.text} tappable={mod.tappable} />
       case 'car':
         return <Car id={mod.id} />
+      case 'tds':
+        return <TdsBoard />
+      case 'ph':
+        return <PhBoard />
+      case 'ds18b20':
+        return <SplitLead />
+      case 'glass':
+        return <Glass holds={mod.holds} />
     }
   }
   return (

@@ -781,4 +781,333 @@ const thermometer: Lesson = {
   },
 }
 
-export const UNO_LESSONS: Lesson[] = [tour, blink, button, dimmer, nightLight, parking, servo, motor, thermometer]
+/**
+ * DFRobot's GravityTDS library turns the probe voltage into ppm with this cubic, corrects it to 25 °C by
+ * 2% per degree, and halves it. The simulation runs it backwards to find the voltage for a chosen water.
+ */
+function tdsFromVoltage(volts: number, celsius: number): number {
+  const ec = 133.42 * volts ** 3 - 255.86 * volts ** 2 + 857.39 * volts
+  return (ec / (1 + 0.02 * (celsius - 25))) * 0.5
+}
+
+function voltageForTds(ppm: number, celsius: number): number {
+  let low = 0
+  let high = 2.3
+  for (let i = 0; i < 40; i++) {
+    const mid = (low + high) / 2
+    if (tdsFromVoltage(mid, celsius) < ppm) low = mid
+    else high = mid
+  }
+  return (low + high) / 2
+}
+
+const waterCode = `#include <OneWire.h>
+#include <DallasTemperature.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include <EEPROM.h>
+#include <GravityTDS.h>
+
+const int TDS_PIN = A1;
+const int TEMP_PIN = 2;
+
+OneWire oneWire(TEMP_PIN);
+DallasTemperature probe(&oneWire);
+GravityTDS tds;
+Adafruit_SSD1306 screen(128, 64, &Wire, -1);
+
+void setup() {
+  Serial.begin(115200);
+  probe.begin();
+  tds.setPin(TDS_PIN);
+  tds.setAref(5.0);
+  tds.setAdcRange(1024);
+  tds.begin();
+  screen.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  screen.setTextColor(SSD1306_WHITE);
+}
+
+void loop() {
+  probe.requestTemperatures();
+  float celsius = probe.getTempCByIndex(0);
+
+  tds.setTemperature(celsius);
+  tds.update();
+  float ppm = tds.getTdsValue();
+
+  screen.clearDisplay();
+  screen.setTextSize(2);
+  screen.setCursor(0, 10);
+  screen.print(ppm, 0);
+  screen.print(" ppm");
+  screen.setCursor(0, 40);
+  screen.print(celsius, 1);
+  screen.print(" C");
+  screen.display();
+
+  Serial.print(ppm, 0);
+  Serial.print(" ppm at ");
+  Serial.print(celsius, 1);
+  Serial.println(" C");
+  delay(1000);
+}`
+
+const WATERS = [
+  { label: 'Distilled', value: 5 },
+  { label: 'Tap', value: 180 },
+  { label: 'Salty', value: 750 },
+]
+
+const waterMeter: Lesson = {
+  ...base,
+  id: 'water-quality',
+  use: 'Water and plants',
+  title: 'Water quality meter',
+  summary: 'Measure dissolved solids and temperature, and show both on a screen.',
+  overview:
+    'A TDS probe passes a small current between two metal pins in the water. Dissolved minerals and salts carry that current, so more of them gives a higher voltage. The reading also rises with temperature, so a waterproof temperature probe sits in the same glass and the sketch corrects the result to 25 °C. Growers use this to mix plant food, and fish keepers use it to watch their tanks.',
+  learn: [
+    'TDS means total dissolved solids, measured in parts per million',
+    'Warm water conducts better, so the reading is corrected to 25 °C',
+    'A DS18B20 needs a 4.7 kΩ pull-up resistor on its data wire',
+    'A cheap probe gives an estimate, about ±10%, not a lab result',
+  ],
+  caution:
+    'This is not a drinking water safety test. A TDS reading cannot detect bacteria, lead or most harmful chemicals. Keep the boards and the Uno away from the water, and only the probes in it.',
+  bench: {
+    boards: UNO_LEFT,
+    breadboard: BB_RIGHT,
+    parts: [
+      { id: 'r1', kind: 'resistor', ohms: 4700, pins: { a: 'h8', b: 'h11' } },
+      { id: 'oled1', kind: 'oled', pins: { GND: 'a15', VCC: 'a16', SCL: 'a17', SDA: 'a18' } },
+    ],
+    modules: [
+      { id: 'tds1', kind: 'tds', pos: [6.6, -5.4] },
+      { id: 'temp1', kind: 'ds18b20', pos: [1.2, -4] },
+      { id: 'glass1', kind: 'glass', pos: [12.4, -1.5], holds: ['tds', 'temp'] },
+    ],
+    wires: [
+      { from: 'uno.5V', to: 'bb.+b1', color: 'red' },
+      { from: 'uno.GND2', to: 'bb.-b2', color: 'black' },
+      { from: 'bb.+b3', to: 'bb.+t3', color: 'red' },
+      { from: 'bb.-b4', to: 'bb.-t4', color: 'black' },
+      { from: 'temp1.VCC', to: 'bb.+t5', color: 'red' },
+      { from: 'temp1.GND', to: 'bb.-t7', color: 'black' },
+      { from: 'temp1.DATA', to: 'bb.j8', color: 'yellow' },
+      { from: 'bb.i8', to: 'uno.D2', color: 'yellow' },
+      { from: 'bb.j11', to: 'bb.+t11', color: 'red' },
+      { from: 'tds1.VCC', to: 'bb.+t20', color: 'red' },
+      { from: 'tds1.GND', to: 'bb.-t21', color: 'black' },
+      { from: 'tds1.A', to: 'uno.A1', color: 'blue' },
+      { from: 'bb.c15', to: 'bb.-t15', color: 'black' },
+      { from: 'bb.c16', to: 'bb.+t16', color: 'red' },
+      { from: 'bb.c17', to: 'uno.A5', color: 'yellow' },
+      { from: 'bb.c18', to: 'uno.A4', color: 'blue' },
+    ],
+    cables: [
+      { from: 'tds1.probe', to: 'glass1.tds', color: '#1d1f23' },
+      { from: 'temp1.cable', to: 'glass1.temp', color: '#1d1f23' },
+    ],
+    nets: [
+      ['uno.5V', 'temp1.VCC', 'r1.b', 'tds1.VCC', 'oled1.VCC'],
+      ['uno.D2', 'temp1.DATA', 'r1.a'],
+      ['uno.GND2', 'temp1.GND', 'tds1.GND', 'oled1.GND'],
+      ['uno.A1', 'tds1.A'],
+      ['uno.A5', 'oled1.SCL'],
+      ['uno.A4', 'oled1.SDA'],
+    ],
+  },
+  callouts: [
+    { title: 'TDS board', body: 'Turns the probe reading into a voltage for A1.', at: 'tds1', slot: 'tc' },
+    { title: 'Glass of water', body: 'Only the probes go in the water.', at: 'glass1', slot: 'tr' },
+    { title: 'DS18B20 probe', body: 'Waterproof thermometer on pin 2.', at: 'temp1', slot: 'tl' },
+    { title: '4.7 kΩ pull-up', body: 'Holds the data wire high between messages.', at: 'r1', slot: 'mr' },
+    { title: 'OLED screen', body: 'Shows ppm and temperature.', at: 'oled1', slot: 'br' },
+  ],
+  wiring: [
+    { from: 'TDS board signal', to: 'A1', why: 'The voltage that rises with dissolved solids.', at: 'uno.A1' },
+    { from: 'TDS board power', to: '5 V and GND rails', why: 'The board runs on 3.3 to 5.5 V.', at: 'tds1' },
+    { from: 'DS18B20 yellow, data', to: 'D2, through row 8', why: 'The 1-Wire data line.', at: 'uno.D2' },
+    { from: '4.7 kΩ', to: 'Row 8 to the 5 V rail', why: 'The pull-up the 1-Wire bus needs.', at: 'r1' },
+    { from: 'DS18B20 red and black', to: '5 V and GND rails', why: 'Probe power, 3.0 to 5.5 V.', at: 'temp1' },
+    { from: 'OLED SCL and SDA', to: 'A5 and A4', why: 'The I²C bus, as in the thermometer lesson.', at: 'oled1' },
+  ],
+  specs: [
+    ['TDS sensor', 'DFRobot Gravity SEN0244, 0 to 1000 ppm, ±10% at 25 °C'],
+    ['TDS output', '0 to 2.3 V into A1'],
+    ['Temperature probe', 'DS18B20, ±0.5 °C from −10 to 85 °C'],
+    ['Pull-up', '4.7 kΩ from data to 5 V'],
+    ['Libraries', 'GravityTDS (from DFRobot), OneWire, DallasTemperature, Adafruit SSD1306 and GFX'],
+    ['Sample readings', 'The distilled, tap and salty values here are examples, not standards'],
+  ],
+  code: [{ name: 'water.ino', lang: 'cpp', source: waterCode }],
+  inputs: [
+    { id: 'water', kind: 'choice', label: 'Water', options: WATERS, initial: 180 },
+    { id: 'temp', kind: 'slider', label: 'Water temperature', min: 5, max: 35, step: 0.5, initial: 22, unit: '°C' },
+  ],
+  tick: (ctx) => {
+    const celsius = ctx.input('temp')
+    const volts = voltageForTds(ctx.input('water'), celsius)
+    // What the Uno sees: a 10-bit reading of the voltage, then the library's formula.
+    const reading = Math.round((volts / 5) * 1024)
+    const ppm = Math.max(0, Math.round(tdsFromVoltage((reading / 1024) * 5, celsius)))
+    const text = `${ppm} ppm at ${celsius.toFixed(1)} C`
+    if (every(ctx, 'p', 1)) ctx.print(text)
+    return { oled1: `${ppm} ppm\n${celsius.toFixed(1)} C`, line: lineOf(waterCode, 'screen.display()') }
+  },
+}
+
+const phCode = `#include <EEPROM.h>
+#include <DFRobot_PH.h>
+
+const int PH_PIN = A1;
+DFRobot_PH ph;
+float temperature = 25.0;
+
+void setup() {
+  Serial.begin(115200);
+  ph.begin();
+}
+
+void loop() {
+  float millivolts = analogRead(PH_PIN) / 1024.0 * 5000.0;
+  float value = ph.readPH(millivolts, temperature);
+  Serial.print("pH ");
+  Serial.println(value, 2);
+
+  // Watches the serial monitor for ENTERPH, CALPH and EXITPH.
+  ph.calibration(millivolts, temperature);
+  delay(1000);
+}`
+
+/** A typical used probe: a little off at pH 7 and a little less sensitive than an ideal one. */
+const PROBE_OFFSET_MV = 45
+const PROBE_MV_PER_PH = 168
+const LIBRARY_NEUTRAL_MV = 1500
+const LIBRARY_ACID_MV = 2032.44
+
+function probeMillivolts(pH: number): number {
+  return 1500 + PROBE_OFFSET_MV + (7 - pH) * PROBE_MV_PER_PH
+}
+
+/** DFRobot_PH's two-point line through the stored pH 7 and pH 4 voltages. */
+function libraryPh(mv: number, neutral: number, acid: number): number {
+  const slope = (7 - 4) / ((neutral - 1500) / 3 - (acid - 1500) / 3)
+  const intercept = 7 - (slope * (neutral - 1500)) / 3
+  return (slope * (mv - 1500)) / 3 + intercept
+}
+
+const SOLUTIONS = [
+  { label: 'pH 7 buffer', value: 7 },
+  { label: 'pH 4 buffer', value: 4 },
+  { label: 'Sample', value: -1 },
+]
+
+const phCalibration: Lesson = {
+  ...base,
+  boot: [...UPLOAD, 'Serial monitor at 115200 baud'],
+  id: 'ph-calibration',
+  use: 'Water and plants',
+  title: 'Calibrate a pH probe',
+  summary: 'Teach the Uno what pH 7 and pH 4 look like, then measure your own water.',
+  overview:
+    'A pH probe makes a small voltage that changes with acidity, but every probe is slightly different and drifts as it ages. Out of the box this one reads pH 7 buffer as about 6.75. Calibration fixes that: dip the probe in two buffer solutions of known pH, tell the library which is which, and it stores the probe’s real voltages in the Uno’s memory. Every reading after that uses your probe’s own line.',
+  learn: [
+    'Buffer solutions have a known, stable pH, which is what makes them useful for calibration',
+    'Two points, pH 7 and pH 4, define the line from voltage to pH',
+    'The library saves calibration in EEPROM, so it survives a restart',
+    'Rinse the probe between solutions, and recalibrate every few weeks',
+  ],
+  caution:
+    'Keep the probe tip wet in its storage solution, because a dried-out bulb can be ruined. The glass bulb breaks easily. This is not a drinking water safety test.',
+  bench: {
+    boards: UNO_LEFT,
+    modules: [
+      { id: 'ph1', kind: 'ph', pos: [3, -1.5] },
+      { id: 'glass1', kind: 'glass', pos: [8.8, -1.5], holds: ['ph'] },
+    ],
+    wires: [
+      { from: 'ph1.VCC', to: 'uno.5V', color: 'red' },
+      { from: 'ph1.GND', to: 'uno.GND2', color: 'black' },
+      { from: 'ph1.A', to: 'uno.A1', color: 'blue' },
+    ],
+    cables: [{ from: 'ph1.bnc', to: 'glass1.ph', color: '#1d1f23' }],
+    nets: [
+      ['uno.5V', 'ph1.VCC'],
+      ['uno.GND2', 'ph1.GND'],
+      ['uno.A1', 'ph1.A'],
+    ],
+  },
+  callouts: [
+    { title: 'pH board', body: 'Amplifies the probe’s tiny voltage for A1.', at: 'ph1', slot: 'tc' },
+    { title: 'BNC connector', body: 'The probe’s cable twists on here.', at: 'ph1.bnc', slot: 'tl' },
+    { title: 'pH probe', body: 'A glass bulb that reacts to acidity.', at: 'glass1', slot: 'tr' },
+    { title: 'A1', body: 'Reads the voltage, 0 to 3 V.', at: 'uno.A1', slot: 'bl' },
+  ],
+  wiring: [
+    { from: 'pH board signal', to: 'A1', why: 'The voltage that falls as pH rises.', at: 'uno.A1' },
+    { from: 'pH board power', to: '5V and GND', why: 'The board runs on 3.3 to 5.5 V.', at: 'ph1' },
+    { from: 'Probe', to: 'BNC connector', why: 'Push and twist to lock it.', at: 'ph1.bnc' },
+  ],
+  specs: [
+    ['Sensor', 'DFRobot Gravity pH V2, SEN0161-V2'],
+    ['Range', 'pH 0 to 14, ±0.1 at 25 °C'],
+    ['Output', '0 to 3.0 V into A1'],
+    ['Calibration', 'pH 7.0 and pH 4.0 buffer solutions'],
+    ['Accepted voltages', 'pH 7: 1322 to 1678 mV. pH 4: 1854 to 2210 mV'],
+    ['Library', 'DFRobot_PH'],
+    ['Simulated probe', `${PROBE_OFFSET_MV} mV off at pH 7, ${PROBE_MV_PER_PH} mV per pH step`],
+  ],
+  code: [{ name: 'ph.ino', lang: 'cpp', source: phCode }],
+  inputs: [
+    { id: 'solution', kind: 'choice', label: 'Probe in', options: SOLUTIONS, initial: 7 },
+    { id: 'sample', kind: 'slider', label: 'Sample pH', min: 3, max: 10, step: 0.1, initial: 6.4 },
+    { id: 'enter', kind: 'hold', label: 'Send ENTERPH' },
+    { id: 'cal', kind: 'hold', label: 'Send CALPH' },
+    { id: 'exit', kind: 'hold', label: 'Send EXITPH' },
+  ],
+  tick: (ctx) => {
+    const mem = ctx.mem
+    if (mem.neutral === undefined) {
+      mem.neutral = LIBRARY_NEUTRAL_MV
+      mem.acid = LIBRARY_ACID_MV
+    }
+    const solution = ctx.input('solution')
+    const truePh = solution < 0 ? ctx.input('sample') : solution
+    const reading = Math.round((probeMillivolts(truePh) / 5000) * 1024)
+    const mv = (reading / 1024) * 5000
+
+    const pressed = (id: string) => changed(ctx, id, ctx.input(id)) && ctx.input(id) > 0
+    if (pressed('enter')) {
+      mem.calibrating = 1
+      ctx.print('Calibration mode: dip the probe in pH 7 or pH 4 buffer, then send CALPH')
+    }
+    if (pressed('cal')) {
+      if (!mem.calibrating) ctx.print('Send ENTERPH first')
+      else if (mv > 1322 && mv < 1678) {
+        mem.pendingNeutral = mv
+        ctx.print(`pH 7 buffer recognised at ${mv.toFixed(0)} mV. Send EXITPH to save`)
+      } else if (mv > 1854 && mv < 2210) {
+        mem.pendingAcid = mv
+        ctx.print(`pH 4 buffer recognised at ${mv.toFixed(0)} mV. Send EXITPH to save`)
+      } else ctx.print(`${mv.toFixed(0)} mV is not a pH 7 or pH 4 buffer. Check the solution`)
+    }
+    if (pressed('exit')) {
+      if (!mem.calibrating) ctx.print('Not in calibration mode')
+      else {
+        if (mem.pendingNeutral) mem.neutral = mem.pendingNeutral
+        if (mem.pendingAcid) mem.acid = mem.pendingAcid
+        ctx.print(mem.pendingNeutral || mem.pendingAcid ? 'Calibration saved to EEPROM' : 'Nothing calibrated, exiting')
+        mem.calibrating = 0
+        mem.pendingNeutral = 0
+        mem.pendingAcid = 0
+      }
+    }
+
+    if (every(ctx, 'p', 1) && !mem.calibrating) ctx.print(`pH ${libraryPh(mv, mem.neutral, mem.acid).toFixed(2)}`)
+    return { line: lineOf(phCode, mem.calibrating ? 'ph.calibration(' : 'Serial.println(value') }
+  },
+}
+
+export const UNO_LESSONS: Lesson[] = [tour, blink, button, dimmer, nightLight, parking, servo, motor, thermometer, waterMeter, phCalibration]

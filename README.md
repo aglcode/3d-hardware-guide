@@ -6,8 +6,9 @@ respond and follow along line by line.
 
 ## Lessons
 
-**Arduino Uno Rev3 SMD** (9): Meet the Uno · Blink an LED · Read a push button · Fade with a knob ·
-Build a night light · Parking sensor · Steer a servo · Drive a DC motor · OLED thermometer
+**Arduino Uno Rev3 SMD** (11): Meet the Uno · Blink an LED · Read a push button · Fade with a knob ·
+Build a night light · Parking sensor · Steer a servo · Drive a DC motor · OLED thermometer ·
+Water quality meter · Calibrate a pH probe
 
 **Raspberry Pi 5** (9): Meet the Raspberry Pi · Set up a desktop · Blink from Python ·
 React to a button · Weather data logger · Web light switch · Motion camera · Home file server ·
