@@ -47,9 +47,10 @@ function forbiddenPairs(nodes: Iterable<string>): [string, string][] {
     ['pi:5V', 'pi:GND'],
     ['pi:3V3', 'pi:GND'],
     ['pi:5V', 'pi:3V3'],
+    ['uno:5V', 'pi:3V3'],
   ]
   for (const node of all) {
-    if (node.startsWith('pi:GPIO')) pairs.push(['pi:5V', node])
+    if (node.startsWith('pi:GPIO')) pairs.push(['pi:5V', node], ['uno:5V', node])
   }
   return pairs
 }
@@ -153,6 +154,24 @@ export function checkBench(lessonId: string, bench: Bench): string[] {
     if (parent.has(a) && parent.has(b) && find(a) === find(b)) {
       report(`${a} and ${b} are shorted together`)
     }
+  }
+
+  // The Uno's 5 V signals can destroy a Pi GPIO pin, so a direct link must be declared safe by the lesson.
+  const nodes = [...parent.keys()]
+  const safeLinks = (bench.safeLinks ?? []).map(([a, b]) => [nodeFor(a), nodeFor(b)])
+  const isSafeLink = (a: string, b: string) => safeLinks.some(([x, y]) => (x === a && y === b) || (x === b && y === a))
+  const unoSignals = nodes.filter((node) => node.startsWith('uno:') && node !== 'uno:GND' && node !== 'uno:5V')
+  for (const gpio of nodes.filter((node) => node.startsWith('pi:GPIO'))) {
+    for (const signal of unoSignals) {
+      if (find(gpio) === find(signal) && !isSafeLink(gpio, signal)) {
+        report(`${signal} connects straight to ${gpio}, which can damage the Pi`)
+      }
+    }
+  }
+  const wiredToPi = nodes.some((node) => node.startsWith('pi:'))
+  const wiredToUno = nodes.some((node) => node.startsWith('uno:'))
+  if (wiredToPi && wiredToUno && find('pi:GND') !== find('uno:GND')) {
+    report('wires reach both boards, but their grounds are not joined')
   }
 
   const netRoots = (bench.nets ?? []).map((net) => {

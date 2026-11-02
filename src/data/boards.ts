@@ -1,4 +1,4 @@
-import type { BoardKind } from './types.ts'
+import type { BoardKind, Track } from './types.ts'
 
 /**
  * Positions in millimetres from the board's lower left corner.
@@ -139,6 +139,14 @@ export const BOARDS: Record<BoardKind, BoardInfo> = {
       ['Size', '85 x 56 mm'],
     ],
   },
+}
+
+export const TRACK_ORDER: Track[] = ['uno', 'pi', 'both']
+
+export const TRACKS: Record<Track, { name: string; label: string; compact: string }> = {
+  uno: { name: 'Arduino Uno Rev3 SMD', label: 'Arduino Uno', compact: 'Uno' },
+  pi: { name: 'Raspberry Pi 5', label: 'Raspberry Pi 5', compact: 'Pi 5' },
+  both: { name: 'Both together', label: 'Uno + Pi', compact: 'Uno + Pi' },
 }
 
 export const UNO_PIN_GROUPS: { title: string; pins: [string, string][] }[] = [
