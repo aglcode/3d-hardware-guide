@@ -1,7 +1,7 @@
 import { START_PAGE, lessonGroups } from '../data/lessons.ts'
-import type { BoardKind } from '../data/types.ts'
+import type { Track } from '../data/types.ts'
 
-export function LessonNav({ board, currentId, done, onPick }: { board: BoardKind; currentId: string; done: string[]; onPick: (id: string) => void }) {
+export function LessonNav({ board, currentId, done, onPick }: { board: Track; currentId: string; done: string[]; onPick: (id: string) => void }) {
   return (
     <nav aria-label="Lessons" className="flex flex-col gap-5 px-2 pb-6 pt-1">
       <a

@@ -1,5 +1,5 @@
 import { BOARDS } from './boards.ts'
-import { changed, clamp, every, lineOf } from './sim-helpers.ts'
+import { changed, every, lineOf } from './sim-helpers.ts'
 import type { Bench, Lesson, Vec2 } from './types.ts'
 
 const PI_RIGHT: Bench['boards'] = [{ kind: 'pi', pos: [5.4, 0] }]
@@ -402,7 +402,7 @@ const web: Lesson = {
       { id: 'r1', kind: 'resistor', ohms: 330, pins: { a: 'h20', b: 'h25' } },
       { id: 'led1', kind: 'led', color: '#e4b21c', pins: { a: 'g25', k: 'g26' } },
     ],
-    modules: [{ id: 'phone1', kind: 'phone', pos: [-12.4, 0] }],
+    modules: [{ id: 'phone1', kind: 'phone', pos: [-12.4, 0], text: 'Lamp is off\n\nSwitch it', tappable: true }],
     wires: [
       { from: 'pi.p11', to: 'bb.j20', color: 'yellow' },
       { from: 'bb.j26', to: 'bb.-t26', color: 'black' },
@@ -685,101 +685,4 @@ const media: Lesson = {
   },
 }
 
-const bridgeUno = `const int KNOB = A0;
-
-void setup() {
-  pinMode(LED_BUILTIN, OUTPUT);
-  Serial.begin(115200);
-}
-
-void loop() {
-  Serial.println(analogRead(KNOB));
-  if (Serial.available()) {
-    char command = Serial.read();
-    digitalWrite(LED_BUILTIN, command == '1');
-  }
-  delay(200);
-}`
-
-const bridgePi = `import serial
-
-uno = serial.Serial("/dev/ttyACM0", 115200, timeout=1)
-
-while True:
-    line = uno.readline().decode().strip()
-    if not line:
-        continue
-    reading = int(line)
-    print("Knob:", reading)
-    uno.write(b"1" if reading > 512 else b"0")`
-
-const bridge: Lesson = {
-  ...base,
-  id: 'pi-and-uno',
-  use: 'Pi and Arduino together',
-  title: 'Pi talks to Uno',
-  summary: 'The Uno handles the pins, the Pi does the thinking, and USB joins them.',
-  overview:
-    'Each board covers the other’s weakness. The Uno has analog inputs and exact timing, while the Pi has networking, storage and Python. Over one USB cable they exchange plain text: the Uno sends knob readings, and the Pi replies when to light the LED. Many robots are built this way.',
-  learn: [
-    'The Uno shows up on the Pi as /dev/ttyACM0',
-    'Both ends must use the same baud rate',
-    'USB keeps the boards safe from the 5 V and 3.3 V mismatch',
-  ],
-  boot: ['Sketch uploaded to the Uno', 'pi@raspberrypi:~ $ python3 bridge.py'],
-  bench: {
-    boards: [
-      { kind: 'pi', pos: [-6, -1.5] },
-      { kind: 'uno', pos: [6, -1.5] },
-    ],
-    breadboard: [6, 5.2],
-    parts: [{ id: 'pot1', kind: 'pot', pins: { 1: 'h15', w: 'h17', 3: 'h19' } }],
-    wires: [
-      { from: 'uno.5V', to: 'bb.+t10', color: 'red' },
-      { from: 'uno.GND1', to: 'bb.-t11', color: 'black' },
-      { from: 'bb.j15', to: 'bb.+t15', color: 'red' },
-      { from: 'bb.j17', to: 'uno.A0', color: 'green' },
-      { from: 'bb.j19', to: 'bb.-t19', color: 'black' },
-    ],
-    cables: [{ from: 'pi@usb3', to: 'uno@usb', color: '#3c4048' }],
-    nets: [
-      ['uno.5V', 'pot1.1'],
-      ['uno.A0', 'pot1.w'],
-      ['uno.GND1', 'pot1.3'],
-    ],
-  },
-  callouts: [
-    { title: 'USB cable', body: 'Carries power and serial text.', at: 'pi@usb3', slot: 'tc' },
-    { title: 'Raspberry Pi', body: 'Runs the Python decision-maker.', at: 'pi@soc', slot: 'tl' },
-    { title: 'Uno', body: 'Reads the knob and drives the LED.', at: 'uno@chip', slot: 'tr' },
-    { title: 'L LED', body: 'Lit when the Pi sends 1.', at: 'uno@led', slot: 'bl' },
-    { title: 'Knob', body: 'Above 512, the Pi turns the LED on.', at: 'pot1', slot: 'br' },
-  ],
-  wiring: [
-    { from: 'Pi USB port', to: 'Uno USB-B', why: 'Powers the Uno and carries the data.', at: 'uno@usb' },
-    { from: 'Knob outer legs', to: 'Uno 5V and GND', why: 'Top and bottom of the divider.', at: 'uno.5V' },
-    { from: 'Knob middle leg', to: 'A0', why: 'The value sent to the Pi.', at: 'uno.A0' },
-  ],
-  specs: [
-    ['Link', 'USB serial, 115200 baud'],
-    ['Port on the Pi', '/dev/ttyACM0'],
-    ['Install', 'sudo apt install python3-serial'],
-    ['Message', 'One number per line, one byte back'],
-  ],
-  code: [
-    { name: 'bridge.py', lang: 'python', source: bridgePi },
-    { name: 'knob.ino', lang: 'cpp', source: bridgeUno },
-  ],
-  inputs: [{ id: 'pot1', kind: 'slider', label: 'Knob position', min: 0, max: 1023, step: 1, initial: 300 }],
-  tick: (ctx) => {
-    const reading = Math.round(clamp(ctx.input('pot1'), 0, 1023))
-    if (every(ctx, 'p', 0.5)) ctx.print(`Knob: ${reading}`)
-    return {
-      'uno.L': reading > 512 ? 1 : 0,
-      'pi.ACT': ctx.t % 0.5 < 0.1 ? 1 : 0,
-      line: lineOf(bridgePi, 'uno.write'),
-    }
-  },
-}
-
-export const PI_LESSONS: Lesson[] = [tour, desktop, blink, button, logger, web, camera, server, media, bridge]
+export const PI_LESSONS: Lesson[] = [tour, desktop, blink, button, logger, web, camera, server, media]

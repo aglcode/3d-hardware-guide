@@ -1,13 +1,12 @@
-import { BOARDS } from '../data/boards.ts'
+import { TRACKS, TRACK_ORDER } from '../data/boards.ts'
 import { INTRO_SCENES } from '../data/intro-script.ts'
 import { LESSONS, lessonGroups } from '../data/lessons.ts'
-import type { BoardKind } from '../data/types.ts'
+import type { Track } from '../data/types.ts'
 
-const BOARD_ORDER: BoardKind[] = ['uno', 'pi']
-
-const CHOOSE_A_BOARD: Record<BoardKind, string> = {
+const CHOOSE_A_BOARD: Record<Track, string> = {
   uno: 'Runs one program from the moment it gets power. Good for sensors, motors and exact timing, and the simplest place to begin.',
   pi: 'A small Linux computer you program in Python. Good for anything that needs a network, files, a camera or a screen.',
+  both: 'The Uno handles sensors and motors, and the Pi handles networking and storage. A good next step once you know the basics of each.',
 }
 
 const LESSON_STEPS = [
@@ -22,7 +21,7 @@ const LESSON_STEPS = [
 const GUIDELINES = [
   'Run is a simulation. It needs no hardware, and it does not compile code or talk to a real board.',
   'Unplug the power before you change any wiring, and check every connection before you plug it back in.',
-  'Raspberry Pi GPIO pins run at 3.3 V. Never connect 5 V to one, it can permanently damage the Pi.',
+  'Raspberry Pi GPIO pins run at 3.3 V. Never connect 5 V or an Uno output straight to one, it can permanently damage the Pi.',
   'Give every LED a resistor, and do not power a motor straight from a pin.',
   'Sensor and display modules differ between makers, so follow the pin labels printed on yours.',
 ]
@@ -39,20 +38,23 @@ export function GettingStarted({ done, onPick }: { done: string[]; onPick: (id: 
           <h1 className="text-title font-semibold tracking-[-0.01em]">Getting started</h1>
           <p className="text-muted">Circuit Lab teaches Arduino and Raspberry Pi with 3D lessons you can run in your browser.</p>
         </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <a
-            href={`#${LESSONS.pi[0].id}`}
-            onClick={() => onPick(LESSONS.pi[0].id)}
-            className="flex h-9 items-center rounded-control border border-control px-3 transition-colors hover:bg-raised active:bg-active"
-          >
-            Start with {BOARDS.pi.short}
-          </a>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          {(['both', 'pi'] as const).map((track) => (
+            <a
+              key={track}
+              href={`#${LESSONS[track][0].id}`}
+              onClick={() => onPick(LESSONS[track][0].id)}
+              className="flex h-9 items-center rounded-control border border-control px-3 transition-colors hover:bg-raised active:bg-active"
+            >
+              Start with {TRACKS[track].label}
+            </a>
+          ))}
           <a
             href={`#${LESSONS.uno[0].id}`}
             onClick={() => onPick(LESSONS.uno[0].id)}
             className="flex h-9 items-center rounded-control bg-ink px-4 font-medium whitespace-nowrap text-surface transition-opacity hover:opacity-85 active:opacity-70"
           >
-            Start with {BOARDS.uno.short}
+            Start with {TRACKS.uno.label}
           </a>
         </div>
       </div>
@@ -92,9 +94,9 @@ export function GettingStarted({ done, onPick }: { done: string[]; onPick: (id: 
           <section>
             <SectionTitle>Which board should you choose?</SectionTitle>
             <dl className="flex flex-col gap-3">
-              {BOARD_ORDER.map((board) => (
+              {TRACK_ORDER.map((board) => (
                 <div key={board}>
-                  <dt className="font-medium">{BOARDS[board].name}</dt>
+                  <dt className="font-medium">{TRACKS[board].name}</dt>
                   <dd className="text-muted">{CHOOSE_A_BOARD[board]}</dd>
                 </div>
               ))}
@@ -131,15 +133,15 @@ export function GettingStarted({ done, onPick }: { done: string[]; onPick: (id: 
 
       <section>
         <SectionTitle>What the lessons cover</SectionTitle>
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {BOARD_ORDER.map((board) => (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
+          {TRACK_ORDER.map((board) => (
             <div key={board}>
               <h3 className="mb-1 font-medium">
-                {BOARDS[board].short} <span className="font-normal text-muted">{LESSONS[board].length} lessons</span>
+                {TRACKS[board].label} <span className="font-normal text-muted">{LESSONS[board].length} lessons</span>
               </h3>
               <dl>
                 {lessonGroups(board).map((group) => (
-                  <div key={group.use} className="grid grid-cols-[160px_1fr] gap-3 border-t border-rule py-2">
+                  <div key={group.use} className="grid grid-cols-[132px_1fr] gap-3 border-t border-rule py-2">
                     <dt className="text-muted">{group.use}</dt>
                     <dd className="flex flex-wrap gap-x-3 gap-y-1">
                       {group.lessons.map((lesson) => (

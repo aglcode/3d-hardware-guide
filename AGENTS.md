@@ -4,7 +4,7 @@ Guidance for AI coding agents (Claude Code, Codex, Cursor, etc.) working in this
 
 ## Project status
 
-`3d-hardware-guides` is **Circuit Lab**: interactive 3D lessons for the Arduino Uno Rev3 SMD and Raspberry Pi 5,
+`3d-hardware-guides` is **Circuit Lab**: interactive 3D lessons for the Arduino Uno Rev3 SMD, the Raspberry Pi 5, and the two together,
 built with `three`, `@react-three/fiber` and `@react-three/drei`. See `README.md` for the lesson format.
 Lessons are data in `src/data/`, and all models are procedural geometry in `src/scene/`, so there are
 no asset files. Board geometry is sourced in `docs/board-references.md`; keep that table current when

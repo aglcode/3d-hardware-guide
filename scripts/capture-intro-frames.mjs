@@ -82,6 +82,9 @@ await shot('pi-tour')
 await open('file-server')
 await shot('file-server')
 
+await open('wire-them-directly')
+await shot('both')
+
 await open('blink-an-led')
 await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: '?', code: 'Slash', text: '?', windowsVirtualKeyCode: 191, modifiers: 8 })
 await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: '?', code: 'Slash', windowsVirtualKeyCode: 191, modifiers: 8 })

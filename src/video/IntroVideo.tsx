@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react'
 import { loadFont } from '@remotion/google-fonts/IBMPlexSans'
 import { AbsoluteFill, Easing, Img, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion'
-import { BOARDS } from '../data/boards.ts'
+import { TRACKS, TRACK_ORDER } from '../data/boards.ts'
 import { INTRO_FPS, INTRO_HEIGHT, INTRO_SCENES, INTRO_WIDTH, type AppPoint, type IntroField, type IntroScene, type IntroStep } from '../data/intro-script.ts'
 import { LESSONS, lessonGroups } from '../data/lessons.ts'
-import type { BoardKind } from '../data/types.ts'
+import type { Track } from '../data/types.ts'
 
 const { fontFamily } = loadFont('normal', { weights: ['400', '500', '600'], subsets: ['latin'] })
 
@@ -183,19 +183,19 @@ function Node({ node, lit, glow }: { node: (typeof NODES)[number]; lit: boolean;
   )
 }
 
-function BoardCount({ board, delay, field }: { board: BoardKind; delay: number; field: IntroField }) {
+function BoardCount({ board, delay, field }: { board: Track; delay: number; field: IntroField }) {
   const pop = usePop(delay)
   return (
     <div style={{ ...FIELDS[field], flex: 1, height: 340, borderRadius: 24, padding: '34px 48px', transform: `translateY(${(1 - pop) * 160}px) scale(${0.85 + pop * 0.15})`, opacity: Math.min(1, pop * 2) }}>
       <div style={{ fontSize: 150, lineHeight: 1, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{LESSONS[board].length}</div>
-      <div style={{ fontSize: 56, fontWeight: 500, marginTop: 28 }}>{BOARDS[board].short}</div>
+      <div style={{ fontSize: 56, fontWeight: 500, marginTop: 28 }}>{TRACKS[board].label}</div>
     </div>
   )
 }
 
 function Numbers() {
   const frame = useCurrentFrame()
-  const total = LESSONS.uno.length + LESSONS.pi.length
+  const total = TRACK_ORDER.reduce((sum, track) => sum + LESSONS[track].length, 0)
   const shown = Math.round(clampedRange(frame, [4, 34], [0, total]))
   return (
     <Field field="ground">
@@ -206,13 +206,14 @@ function Numbers() {
       <div style={{ display: 'flex', gap: 40, marginTop: 60 }}>
         <BoardCount board="uno" delay={26} field="uno" />
         <BoardCount board="pi" delay={32} field="pi" />
+        <BoardCount board="both" delay={38} field="accent" />
       </div>
     </Field>
   )
 }
 
 const GROUP_FIELDS: IntroField[] = ['accent', 'ground', 'uno', 'pi']
-const USES = [...new Set(([...lessonGroups('uno'), ...lessonGroups('pi')]).map((group) => group.use))].filter((use) => use !== 'First look')
+const USES = [...new Set(TRACK_ORDER.flatMap((track) => lessonGroups(track)).map((group) => group.use))].filter((use) => use !== 'First look')
 
 function UseChip({ use, index }: { use: string; index: number }) {
   const pop = usePop(WIPE_FRAMES + index * 4)
@@ -221,9 +222,9 @@ function UseChip({ use, index }: { use: string; index: number }) {
       style={{
         ...FIELDS[GROUP_FIELDS[index % GROUP_FIELDS.length]],
         display: 'inline-block',
-        fontSize: 62,
+        fontSize: 54,
         fontWeight: 500,
-        padding: '20px 40px',
+        padding: '16px 34px',
         borderRadius: 16,
         transform: `scale(${pop}) rotate(${(1 - pop) * (index % 2 === 0 ? -8 : 8)}deg)`,
       }}
@@ -236,7 +237,7 @@ function UseChip({ use, index }: { use: string; index: number }) {
 function Groups({ text }: { text: string }) {
   return (
     <Field field="ink">
-      <div style={{ fontSize: 104, fontWeight: 600, letterSpacing: '-0.03em', marginBottom: 60 }}>
+      <div style={{ fontSize: 84, fontWeight: 600, letterSpacing: '-0.03em', marginBottom: 54 }}>
         <Rise delay={3}>{text}</Rise>
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 26 }}>
@@ -336,11 +337,11 @@ function Step({ step }: { step: IntroStep }) {
   )
 }
 
-function EndTile({ board, delay, field }: { board: BoardKind; delay: number; field: IntroField }) {
+function EndTile({ board, delay, field }: { board: Track; delay: number; field: IntroField }) {
   const pop = usePop(delay)
   return (
-    <div style={{ ...FIELDS[field], flex: 1, borderRadius: 24, padding: '56px 56px', fontSize: 84, fontWeight: 600, letterSpacing: '-0.025em', transform: `scale(${pop})` }}>
-      {BOARDS[board].short}
+    <div style={{ ...FIELDS[field], flex: 1, borderRadius: 24, padding: '56px 40px', fontSize: 62, fontWeight: 600, letterSpacing: '-0.02em', whiteSpace: 'nowrap', transform: `scale(${pop})` }}>
+      {TRACKS[board].label}
     </div>
   )
 }
@@ -354,6 +355,7 @@ function End({ text }: { text: string }) {
       <div style={{ display: 'flex', gap: 40 }}>
         <EndTile board="uno" delay={14} field="uno" />
         <EndTile board="pi" delay={20} field="pi" />
+        <EndTile board="both" delay={26} field="accent" />
       </div>
     </Field>
   )

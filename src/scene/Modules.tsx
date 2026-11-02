@@ -143,16 +143,17 @@ function Router() {
   )
 }
 
-function Phone({ id }: { id: string }) {
+function Phone({ id, text, tappable }: { id: string; text?: string; tappable?: boolean }) {
   const tilt = -0.32
   return (
     <group
       onPointerDown={(event) => {
+        if (!tappable) return
         event.stopPropagation()
         setInput(id, (live.inputs[id] ?? 0) > 0 ? 0 : 1)
       }}
       onPointerOver={() => {
-        document.body.style.cursor = 'pointer'
+        if (tappable) document.body.style.cursor = 'pointer'
       }}
       onPointerOut={() => {
         document.body.style.cursor = ''
@@ -167,7 +168,7 @@ function Phone({ id }: { id: string }) {
           size={[3, 6.1]}
           pixels={[300, 610]}
           style={{ background: '#f6f7f8', ink: '#131416', size: 46, align: 'center' }}
-          fallback={'Lamp is off\n\nSwitch it'}
+          fallback={text ?? ''}
         />
       </group>
     </group>
@@ -215,7 +216,7 @@ export function ModuleView({ mod }: { mod: ModulePart }) {
       case 'router':
         return <Router />
       case 'phone':
-        return <Phone id={mod.id} />
+        return <Phone id={mod.id} text={mod.text} tappable={mod.tappable} />
       case 'car':
         return <Car id={mod.id} />
     }

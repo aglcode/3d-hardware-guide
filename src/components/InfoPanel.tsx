@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent } from 'react'
-import { PI_HEADER, UNO_PIN_GROUPS, pinTone } from '../data/boards.ts'
+import { BOARDS, PI_HEADER, UNO_PIN_GROUPS, pinTone } from '../data/boards.ts'
 import type { Lesson } from '../data/types.ts'
 import { setHighlight } from '../lib/bench-store.ts'
 
@@ -20,6 +20,9 @@ function highlightProps(at: string | undefined) {
 function Overview({ lesson }: { lesson: Lesson }) {
   return (
     <div className="flex flex-col gap-3">
+      {lesson.caution && (
+        <p className="rounded-control bg-caution-bg px-3 py-2 text-caution-ink">{lesson.caution}</p>
+      )}
       <p>{lesson.overview}</p>
       <ul className="flex flex-col gap-1.5">
         {lesson.learn.map((item) => (
@@ -29,9 +32,6 @@ function Overview({ lesson }: { lesson: Lesson }) {
           </li>
         ))}
       </ul>
-      {lesson.caution && (
-        <p className="rounded-control bg-caution-bg px-3 py-2 text-caution-ink">{lesson.caution}</p>
-      )}
       {/* On narrow screens the bench shows numbered dots, and this list says what they are. */}
       <ol className="flex flex-col gap-1 sm:hidden">
         {lesson.callouts.map((callout, i) => (
@@ -161,6 +161,7 @@ export function InfoPanel({ lesson }: { lesson: Lesson }) {
   }
 
   const usesPi = lesson.bench.boards.some((b) => b.kind === 'pi')
+  const usesUno = lesson.bench.boards.some((b) => b.kind === 'uno')
 
   return (
     <section aria-label="Lesson information" className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-card border border-line">
@@ -183,7 +184,22 @@ export function InfoPanel({ lesson }: { lesson: Lesson }) {
       <div role="tabpanel" aria-label={tab} tabIndex={0} className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
         {tab === 'Overview' && <Overview lesson={lesson} />}
         {tab === 'Wiring' && <Wiring lesson={lesson} />}
-        {tab === 'Pinout' && (usesPi ? <PiPinout lesson={lesson} /> : <UnoPinout />)}
+        {tab === 'Pinout' && (
+          <div className="flex flex-col gap-5">
+            {usesPi && (
+              <div>
+                {usesUno && <h3 className="mb-1 font-semibold">{BOARDS.pi.short}</h3>}
+                <PiPinout lesson={lesson} />
+              </div>
+            )}
+            {usesUno && (
+              <div>
+                {usesPi && <h3 className="mb-1 font-semibold">{BOARDS.uno.short}</h3>}
+                <UnoPinout />
+              </div>
+            )}
+          </div>
+        )}
         {tab === 'Specs' && <Specs lesson={lesson} />}
       </div>
     </section>

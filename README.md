@@ -9,9 +9,12 @@ respond and follow along line by line.
 **Arduino Uno Rev3 SMD** (9): Meet the Uno · Blink an LED · Read a push button · Fade with a knob ·
 Build a night light · Parking sensor · Steer a servo · Drive a DC motor · OLED thermometer
 
-**Raspberry Pi 5** (10): Meet the Raspberry Pi · Set up a desktop · Blink from Python ·
+**Raspberry Pi 5** (9): Meet the Raspberry Pi · Set up a desktop · Blink from Python ·
 React to a button · Weather data logger · Web light switch · Motion camera · Home file server ·
-Living-room media player · Pi talks to Uno
+Living-room media player
+
+**Uno + Pi** (6): Why use both · Pi talks to Uno · Wire them directly · Room monitor ·
+Phone-controlled servo · Distance-triggered camera
 
 The Run button simulates the program in the browser. It does not compile code or talk to a real board.
 
@@ -51,7 +54,7 @@ non-profits and for-profit organisations of up to 3 employees; larger for-profit
 
 ## Add a lesson
 
-A lesson is data, in `src/data/lessons-uno.ts` or `src/data/lessons-pi.ts`:
+A lesson is data, in `src/data/lessons-uno.ts`, `lessons-pi.ts` or `lessons-both.ts`:
 
 - `bench`: boards, a breadboard, parts in named holes (`d10`, `-b4`), wires between references
   (`uno.D13`, `pi.p11`, `bb.a5`), and `nets`, the connections the circuit must have.
@@ -61,8 +64,9 @@ A lesson is data, in `src/data/lessons-uno.ts` or `src/data/lessons-pi.ts`:
   code changes.
 
 `npm run check:circuits` then fails the lesson if a hole or pin does not exist, two things share a
-socket, a supply is shorted, 5 V reaches a Pi GPIO pin, a leg is left floating, a declared connection
-is missing, or the simulation throws. It checks the wiring you drew, not whether the code and the
+socket, a supply is shorted, 5 V or an Uno pin reaches a Pi GPIO pin without being declared in
+`safeLinks`, wires reach both boards without a shared ground, a leg is left floating, a declared
+connection is missing, or the simulation throws. It checks the wiring you drew, not whether the code and the
 wiring agree, so check the pin numbers in the code by eye.
 
 New parts go in `src/scene/Parts.tsx` (on a breadboard) or `src/scene/Modules.tsx` (stand-alone). Parts

@@ -11,6 +11,8 @@ Where the 3D models' numbers come from, and how far to trust each one.
 | Pi docs | [raspberrypi/documentation](https://github.com/raspberrypi/documentation) on GitHub: `power-supplies`, `power-button`, `gpio-on-raspberry-pi`, `accessories/camera/install` |
 | Uno SMD pinout | [Arduino Uno Rev3 SMD full pinout](https://docs.arduino.cc/resources/pinouts/A000073-full-pinout.pdf) |
 | Uno datasheet | [Arduino Uno R3 datasheet](https://docs.arduino.cc/resources/datasheets/A000066-datasheet.pdf), for the parts list only |
+| ATmega328P datasheet | [Microchip ATmega328P datasheet](https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-7810-Automotive-Microcontrollers-ATmega328P_Datasheet.pdf), for the 0.6 x VCC input-high threshold used in "Wire them directly" |
+| Pi UART docs | `computers/configuration/interfaces` in the same Raspberry Pi repository, and the `uart0-pi5` entry in the [overlays README](https://github.com/raspberrypi/linux/blob/rpi-6.12.y/arch/arm/boot/dts/overlays/README), for the Pi 5 UART setup, the 3.3 V warning and `/dev/ttyAMA0` |
 | Photos | The two product photos supplied for this project, used for colour and part appearance only |
 
 The Pi 5 drawing itself says its dimensions are approximate and for reference only, and that not all

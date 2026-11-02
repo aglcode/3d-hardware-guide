@@ -5,10 +5,9 @@ import { InfoPanel } from './components/InfoPanel.tsx'
 import { InputControls } from './components/InputControls.tsx'
 import { LessonNav } from './components/LessonNav.tsx'
 import { ShortcutsDialog } from './components/ShortcutsDialog.tsx'
-import { BOARDS } from './data/boards.ts'
+import { TRACKS, TRACK_ORDER } from './data/boards.ts'
 import { LESSONS, START_PAGE, findLesson } from './data/lessons.ts'
 import { shortcutFor } from './data/shortcuts.ts'
-import type { BoardKind } from './data/types.ts'
 import { loadLesson, requestView, setLabels, startRun, stopRun, useBench } from './lib/bench-store.ts'
 import { applyTheme, hasWebGl, initialTheme, loadProgress, saveProgress, saveTheme, type Theme } from './lib/preferences.ts'
 
@@ -27,8 +26,6 @@ const Stage = lazy(() =>
     ),
   })),
 )
-
-const BOARD_ORDER: BoardKind[] = ['uno', 'pi']
 
 /** Typing in a field must never trigger a shortcut. */
 function isTypingTarget(target: EventTarget | null) {
@@ -154,7 +151,7 @@ export default function App() {
         window.location.hash = previousLesson ? previousLesson.id : START_PAGE
         break
       case 'board':
-        window.location.hash = LESSONS[lesson.board === 'uno' ? 'pi' : 'uno'][0].id
+        window.location.hash = LESSONS[TRACK_ORDER[(TRACK_ORDER.indexOf(lesson.board) + 1) % TRACK_ORDER.length]][0].id
         break
       case 'labels':
         setLabels(!labels)
@@ -195,7 +192,7 @@ export default function App() {
           <span className="hidden text-section font-semibold sm:inline">Circuit Lab</span>
         </a>
         <nav aria-label="Boards" className="flex h-full items-stretch gap-4">
-          {BOARD_ORDER.map((board) => (
+          {TRACK_ORDER.map((board) => (
             <a
               key={board}
               href={`#${LESSONS[board][0].id}`}
@@ -203,7 +200,8 @@ export default function App() {
               onClick={() => pick(LESSONS[board][0].id)}
               className={`flex items-center border-b-2 pt-0.5 whitespace-nowrap transition-colors ${!onStartPage && lesson.board === board ? 'border-accent font-semibold text-ink' : 'border-transparent text-muted hover:text-ink'}`}
             >
-              {BOARDS[board].short}
+              <span className="hidden sm:inline">{TRACKS[board].label}</span>
+              <span className="sm:hidden">{TRACKS[board].compact}</span>
             </a>
           ))}
         </nav>

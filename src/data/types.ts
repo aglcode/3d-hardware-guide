@@ -1,5 +1,8 @@
 export type BoardKind = 'uno' | 'pi'
 
+/** A list of lessons in the app. Each board has one, and `both` uses the two together. */
+export type Track = BoardKind | 'both'
+
 /** Bench coordinates in centimetres: x to the right, z towards the viewer. */
 export type Vec2 = [number, number]
 export type Vec3 = [number, number, number]
@@ -46,6 +49,10 @@ export type ModulePart = {
   kind: ModuleKind
   pos: Vec2
   rot?: number
+  /** What a screen shows before the program runs. */
+  text?: string
+  /** Whether clicking it in 3D toggles its input. */
+  tappable?: boolean
 }
 
 export const WIRE_COLORS = {
@@ -84,6 +91,8 @@ export type Bench = {
   cables?: Cable[]
   /** Connections that must exist, each listed as references that share one net. */
   nets?: string[][]
+  /** Direct wires between the boards that are safe by design, such as a Pi output into an Uno input. */
+  safeLinks?: [string, string][]
 }
 
 export type Slot = 'tl' | 'tc' | 'tr' | 'ml' | 'mr' | 'bl' | 'bc' | 'br'
@@ -137,7 +146,7 @@ export type SimContext = {
 
 export type Lesson = {
   id: string
-  board: BoardKind
+  board: Track
   use: string
   title: string
   /** The sentence under the title: what you end up with. */
